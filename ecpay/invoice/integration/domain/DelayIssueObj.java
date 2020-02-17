@@ -179,13 +179,13 @@ public class DelayIssueObj {
 	 * PayType
 	 * 交易類別
 	 */
-	private String PayType = "3";
+	private String PayType = "2";
 	
 	/**
 	 * PayAct
 	 * 交易類別名稱
 	 */
-	private String PayAct = "ALLPAY";
+	private String PayAct = "ECPAY";
 	
 	/**
 	 * NotifyURL

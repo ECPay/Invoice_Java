@@ -5,6 +5,7 @@ import java.util.UUID;
 import ecpay.invoice.integration.AllInOne;
 import ecpay.invoice.integration.domain.AllowanceInvalidObj;
 import ecpay.invoice.integration.domain.AllowanceObj;
+import ecpay.invoice.integration.domain.AllowanceByCollegiateObj;
 import ecpay.invoice.integration.domain.CheckLoveCodeObj;
 import ecpay.invoice.integration.domain.CheckMobileBarCodeObj;
 import ecpay.invoice.integration.domain.DelayIssueObj;
@@ -25,6 +26,7 @@ public class ExampleInvoice {
 //		System.out.println("DelayIssue: "+postDelayIssue());
 //		System.out.println("TriggerIssue: "+postTriggerIssue());
 //		System.out.println("Allowance: "+postAllowance());
+//		System.out.println("AllowanceByCollegiate: "+postAllowanceByCollegiate());
 //		System.out.println("IssueInvalid: "+postIssueInvalid());
 //		System.out.println("AllowanceInvalid: "+postAllowanceInvalid());
 //		System.out.println("QueryIssue: "+postQueryIssue());
@@ -66,12 +68,13 @@ public class ExampleInvoice {
 	public static String postDelayIssue(){
 		DelayIssueObj obj = new DelayIssueObj();
 		UUID uid = UUID.randomUUID();
-		obj.setRelateNumber("521sd5595flfjwklekj");
+		String num=uid.toString().replaceAll("-", "").substring(0, 30);
+		obj.setRelateNumber(num);
 		obj.setCustomerName("Mark");
 		obj.setCustomerAddr("Taiwan");
 		obj.setCustomerPhone("0912345678");
 		obj.setPrint("1");
-		obj.setDonation("2");
+		obj.setDonation("0");
 		obj.setTaxType("1");
 		obj.setSalesAmount("100");
 		obj.setItemName("運動用品");
@@ -81,7 +84,7 @@ public class ExampleInvoice {
 		obj.setItemAmount("100.3");
 		obj.setDelayFlag("2");
 		obj.setDelayDay("0");
-		obj.setTsr("521sd5595fowijl2khj");
+		obj.setTsr(num);
 		return all.delayIssue(obj);
 	}
 	
@@ -106,7 +109,23 @@ public class ExampleInvoice {
 		obj.setItemAmount("100.3");
 		return all.allowance(obj);
 	}
-	
+	public static String postAllowanceByCollegiate(){
+		AllowanceByCollegiateObj obj = new AllowanceByCollegiateObj();
+		obj.setInvoiceNo("TE10032604");
+		obj.setAllowanceNotify("A");
+		obj.setCustomerName("Mark");
+		obj.setNotifyMail("test@test.com");
+		obj.setNotifyPhone("0912345678");
+		obj.setAllowanceAmount("100");
+		obj.setItemName("運動用品");
+		obj.setItemCount("1");
+		obj.setItemWord("箱");
+		obj.setItemPrice("100");
+		obj.setItemAmount("100");
+		obj.setItemTaxType("3");
+		obj.setReturnURL("http://test.test.com");
+		return all.allowancebycollegiate(obj);
+	}
 	public static String postIssueInvalid(){
 		IssueInvalidObj obj = new IssueInvalidObj();
 		obj.setInvoiceNumber("XN12345678");

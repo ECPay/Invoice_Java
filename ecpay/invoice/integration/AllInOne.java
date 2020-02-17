@@ -7,6 +7,7 @@ import org.apache.log4j.PropertyConfigurator;
 import ecpay.invoice.integration.ecpayOperator.EcpayFunction;
 import ecpay.invoice.integration.domain.AllowanceInvalidObj;
 import ecpay.invoice.integration.domain.AllowanceObj;
+import ecpay.invoice.integration.domain.AllowanceByCollegiateObj;
 import ecpay.invoice.integration.domain.CheckLoveCodeObj;
 import ecpay.invoice.integration.domain.CheckMobileBarCodeObj;
 import ecpay.invoice.integration.domain.DelayIssueObj;
@@ -21,6 +22,7 @@ import ecpay.invoice.integration.domain.TriggerIssueObj;
 import ecpay.invoice.integration.errorMsg.ErrorMessage;
 import ecpay.invoice.integration.exception.EcpayException;
 import ecpay.invoice.integration.verification.VerifyAllowance;
+import ecpay.invoice.integration.verification.VerifyAllowanceByCollegiate;
 import ecpay.invoice.integration.verification.VerifyAllowanceInvalid;
 import ecpay.invoice.integration.verification.VerifyCheckLoveCode;
 import ecpay.invoice.integration.verification.VerifyCheckMobileBarCode;
@@ -167,7 +169,32 @@ public class AllInOne extends AllInOneBase{
 		}
 		return result;
 	}
-	
+	public String allowancebycollegiate(AllowanceByCollegiateObj obj){
+		obj.setMerchantID(MerchantID);
+		obj.setTimeStamp(EcpayFunction.genUnixTimeStamp());
+		log.info("allowance params: " + obj.toString());
+		String result = "";
+		String CheckMacValue = "";
+		try{
+			VerifyAllowanceByCollegiate verify = new VerifyAllowanceByCollegiate();
+			allowancebycollegiateUrl = verify.getAPIUrl(operatingMode);
+			verify.verifyParams(obj);
+			obj.setCustomerName(EcpayFunction.urlEncode(obj.getCustomerName()));
+			obj.setNotifyMail(EcpayFunction.urlEncode(obj.getNotifyMail()));
+			obj.setItemName(EcpayFunction.urlEncode(obj.getItemName()));
+			obj.setItemWord(EcpayFunction.urlEncode(obj.getItemWord()));
+			CheckMacValue = EcpayFunction.genCheckMacValue(HashKey, HashIV, obj);
+			log.info("allowance generate CheckMacValue: " + CheckMacValue);
+			String httpValue = EcpayFunction.genHttpValue(obj, CheckMacValue);
+			log.info("allowance post String: " + httpValue);
+			result = EcpayFunction.httpPost(allowancebycollegiateUrl, httpValue, "UTF-8");
+		} catch(EcpayException e){
+			e.ShowExceptionMessage();
+			log.error(e.getNewExceptionMessage());
+			throw new EcpayException(e.getNewExceptionMessage());
+		}
+		return result;
+	}
 	public String issueInvalid(IssueInvalidObj obj){
 		obj.setMerchantID(MerchantID);
 		obj.setTimeStamp(EcpayFunction.genUnixTimeStamp());

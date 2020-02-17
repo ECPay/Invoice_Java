@@ -12,6 +12,7 @@ import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 
 import ecpay.invoice.integration.domain.AllowanceObj;
+import ecpay.invoice.integration.domain.AllowanceByCollegiateObj;
 import ecpay.invoice.integration.domain.DelayIssueObj;
 import ecpay.invoice.integration.domain.InvoiceNotifyObj;
 import ecpay.invoice.integration.domain.IssueObj;
@@ -762,7 +763,126 @@ public class InvoiceVerifyBase {
 				throw new EcpayException("ItemAmount contains pipeline delimiter but there's only one item in param ItemName.");
 		}
 	}
-	
+	public void verifyAllowanceByCollegiate(AllowanceByCollegiateObj obj){
+		// 比對特殊欄位值相依需求
+		// NotifyPhone和NotifyMail至少一個有值
+		if(obj.getAllowanceNotify().equals("S")){
+			if(obj.getNotifyPhone().isEmpty())
+				throw new EcpayException("NotifyPhone cannot be empty when AllowanceNotify is S.");
+		} else if(obj.getAllowanceNotify().equals("E")){
+			if(obj.getNotifyMail().isEmpty())
+				throw new EcpayException("NotifyEmail cannot be empty when AllowanceNotify is E.");
+		} else if(obj.getAllowanceNotify().equals("A")){
+			if(obj.getNotifyPhone().isEmpty() || obj.getNotifyMail().isEmpty())
+				throw new EcpayException("NotifyPhone and NotifyMail cannot be empty.");
+		}
+		// 商品價錢含有管線 => 認為是多樣商品 *ItemCount ， *ItemPrice ， *ItemAmount 逐一用管線分割，計算數量後與第一個比對
+		// 驗證單筆ItemAmount = (ItemPrice * ItemCount)
+		if(!obj.getItemPrice().contains("|")){
+			if(Float.parseFloat(obj.getItemAmount()) != Float.parseFloat(obj.getItemPrice()) * Integer.parseInt(obj.getItemCount()))
+				throw new EcpayException("ItemPrice * ItemCount != ItemAmount.");
+			// 驗證單筆商品合計是否等於發票金額
+			if(Integer.parseInt(obj.getAllowanceAmount()) != Math.round(Float.parseFloat(obj.getItemAmount())))
+				throw new EcpayException("ItemAmount is not equal to AllowanceAmount.");
+		} else if(obj.getItemPrice().contains("|")){
+			int itemPrice = obj.getItemPrice().split("\\|").length;
+			int paramCount = 0;
+			Pattern r = Pattern.compile("(\\|\\||^\\||\\|$)");
+			Matcher itCount = r.matcher(obj.getItemCount());
+			Matcher itAmount = r.matcher(obj.getItemAmount());
+			// check if there's empty value.
+			if(itCount.find())
+				throw new EcpayException("ItemCount contains empty value.");
+			else{
+				paramCount = obj.getItemCount().split("\\|").length;
+				if(paramCount != itemPrice)
+					throw new EcpayException("Count of item info ItemCount("+paramCount+") not match item count from ItemPrice("+itemPrice+")");
+			}
+			if(itAmount.find())
+				throw new EcpayException("ItemAmount contains empty value.");
+			else{
+				paramCount = obj.getItemAmount().split("\\|").length;
+				if(paramCount != itemPrice)
+					throw new EcpayException("Count of item info ItemAmount("+paramCount+") not match item count from ItemPrice("+itemPrice+")");
+			}
+			String[] amount = obj.getItemAmount().split("\\|");
+			String[] price = obj.getItemPrice().split("\\|");
+			String[] count = obj.getItemCount().split("\\|");
+			for(int i = 0; i <= itemPrice-1; i++){
+				if(Float.parseFloat(amount[i]) != Float.parseFloat(price[i])*Integer.parseInt(count[i]))
+					throw new EcpayException("ItemPrice * ItemCount != ItemAmount");
+				// Verify ItemAmount subtotal equal SalesAmount
+				float itemPriceSum = 0;
+				for(int j = 0; j <= itemPrice-1; j++)
+					itemPriceSum += Float.parseFloat(amount[j]);
+				if(Integer.parseInt(obj.getAllowanceAmount()) != Math.round(itemPriceSum))
+					throw new EcpayException("ItemAmount subtotal is not equal to AllowanceAmount.");
+			}
+		}
+		// 比對商品名稱，數量，單位，價格，tax，合計，備註項目數量是否一致，欄位是否為空
+		if(obj.getItemName().isEmpty() || obj.getItemWord().isEmpty())
+			throw new EcpayException("ItemName or ItemWord cannot be empty.");
+		// 商品名稱含有管線 => 認為是多樣商品 *ItemName， *ItemCount ，*ItemWord， *ItemPrice， *ItemAmount逐一用管線分割，計算數量後與第一個比對
+		if(obj.getItemName().contains("|")){
+			int itemName = obj.getItemName().split("\\|").length;
+			int paramCount = 0;
+			Pattern r = Pattern.compile("(\\|\\||^\\||\\|$)");
+			Matcher itCount = r.matcher(obj.getItemCount());
+			Matcher itWord = r.matcher(obj.getItemWord());
+			Matcher itPrice = r.matcher(obj.getItemPrice());
+			Matcher itAmount = r.matcher(obj.getItemAmount());
+			// check if there's empty value.
+			if(itCount.find())
+				throw new EcpayException("ItemCount contains empty value.");
+			else{
+				paramCount = obj.getItemCount().split("\\|").length;
+				if(paramCount != itemName)
+					throw new EcpayException("Count of item info ItemCount("+paramCount+") not match item count from ItemName("+itemName+")");
+			}
+			if(itWord.find())
+				throw new EcpayException("ItemWord contains empty value.");
+			else{
+				paramCount = obj.getItemWord().split("\\|").length;
+				if(paramCount != itemName)
+					throw new EcpayException("Count of item info ItemWord("+paramCount+") not match item count from ItemName("+itemName+")");
+			}
+			if(itPrice.find())
+				throw new EcpayException("ItemPrice contains empty value.");
+			else{
+				paramCount = obj.getItemPrice().split("\\|").length;
+				if(paramCount != itemName)
+					throw new EcpayException("Count of item info ItemPrice("+paramCount+") not match item count from ItemName("+itemName+")");
+			}
+			if(itAmount.find())
+				throw new EcpayException("ItemAmount contains empty value.");
+			else{
+				paramCount = obj.getItemAmount().split("\\|").length;
+				if(paramCount != itemName)
+					throw new EcpayException("Count of item info ItemAmount("+paramCount+") not match item count from ItemName("+itemName+")");
+			}
+			// ItemTaxType 能含有1, 3
+			if(!obj.getItemTaxType().equals("")){
+				String[] itemTax = obj.getItemTaxType().split("\\|");
+				if(itemTax.length > 0){
+					for(int i = 0; i < itemTax.length; i++){
+						if(!itemTax[i].equals("1") && !itemTax[i].equals("3")){
+							throw new EcpayException("Illegal ItemTaxType!");
+						}
+					}
+				}
+			}
+		}else{
+			// 沒有管線 => 逐一檢查有無管線
+			if(obj.getItemCount().contains("|"))
+				throw new EcpayException("ItemCount contains pipeline delimiter but there's only one item in param ItemName.");
+			if(obj.getItemWord().contains("|"))
+				throw new EcpayException("ItemWord contains pipeline delimiter but there's only one item in param ItemName.");
+			if(obj.getItemPrice().contains("|"))
+				throw new EcpayException("ItemPrice contains pipeline delimiter but there's only one item in param ItemName.");
+			if(obj.getItemAmount().contains("|"))
+				throw new EcpayException("ItemAmount contains pipeline delimiter but there's only one item in param ItemName.");
+		}
+	}
 	public void verifyNotify(InvoiceNotifyObj obj){
 		// 比對特殊欄位值相依需求
 		// a Phone和NotifyMail至少一個有值

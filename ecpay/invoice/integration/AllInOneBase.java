@@ -21,6 +21,7 @@ public class AllInOneBase {
 	protected static String delayIssueUrl;
 	protected static String triggerIssueUrl;
 	protected static String allowanceUrl;
+	protected static String allowancebycollegiateUrl;
 	protected static String issueInvalidUrl;
 	protected static String allowanceInvalidUrl;
 	protected static String queryIssueUrl;
